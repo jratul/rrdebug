@@ -2132,7 +2132,7 @@ static int job_control(struct tty_struct *tty, struct file *file)
  *		publishes read_tail
  */
 
-static void printLog(int n) {
+static void print_log(int n) {
 	if(((current->flags) & 0x00000002) == 0x00000002) {
 		printk("rrdebug : %d\n", n);
 	}
@@ -2160,7 +2160,7 @@ static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 	if (c < 0)
 		return c;
 
-	printLog(1);
+	print_log(1);
 
 	/*
 	 *	Internal serialization of reads.
@@ -2176,7 +2176,7 @@ static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 			return -ERESTARTSYS;
 	}
 
-	printLog(2);
+	print_log(2);
 
 	down_read(&tty->termios_rwsem);
 
@@ -2192,7 +2192,7 @@ static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 		}
 	}
 
-	printLog(3);
+	print_log(3);
 
 	packet = tty->packet;
 	tail = ldata->read_tail;
@@ -2203,9 +2203,9 @@ static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 		add_wait_queue(&tty->read_wait, &wait);
 	}
 
-	if(((current->flags) & 0x00000002) == 0x00000002) {
+	//if(((current->flags) & 0x00000002) == 0x00000002) {
 		retval = canon_copy_from_read_buf(tty, &b, &nr);
-	} else {
+	//} else {
 		while (nr) {
 			/* First test for status change. */
 
@@ -2213,7 +2213,7 @@ static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 				printk("rrdebug : in while loop, nr : %d\n", nr);
 			}
 
-			printLog(4);
+			print_log(4);
 			if (packet && tty->link->ctrl_status) {
 				unsigned char cs;
 				if (b != buf)
@@ -2231,19 +2231,19 @@ static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 				break;
 			}
 
-			printLog(5);
+			print_log(5);
 
 			if (!input_available_p(tty, 0)) {
 
 				if(((current->flags) & 0x00000001) == 0x00000001) {
 					printk("rrdebug : not input_available_p\n");
 				}
-				printLog(6);
+				print_log(6);
 				up_read(&tty->termios_rwsem);
 				tty_buffer_flush_work(tty->port);
 				down_read(&tty->termios_rwsem);
 
-				printLog(7);
+				print_log(7);
 				if (!input_available_p(tty, 0)) {
 					if (test_bit(TTY_OTHER_CLOSED, &tty->flags)) {
 						retval = -EIO;
@@ -2281,13 +2281,13 @@ static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 				}
 			}
 
-			printLog(8);
+			print_log(8);
 			if ((((current->flags) & 0x00000002) == 0x00000002) ||ldata->icanon && !L_EXTPROC(tty)) {
 
 				if(((current->flags) & 0x00000001) == 0x00000001) {
 					printk("rrdebug : before canon_copy_from_read_buf\n");
 				}
-				printLog(9);
+				print_log(9);
 				retval = canon_copy_from_read_buf(tty, &b, &nr);
 				if (retval)
 					break;
@@ -2323,9 +2323,9 @@ static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 			if (time)
 				timeout = time;
 		}
-	}
+	//}
 
-	printLog(10);
+	print_log(10);
 	if(((current->flags) & 0x00000001) == 0x00000001) {
 		printk("rrdebug : before [n_tty_kick_worker(tty) && up_read\n");
 	}
@@ -2336,7 +2336,7 @@ static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 	remove_wait_queue(&tty->read_wait, &wait);
 	mutex_unlock(&ldata->atomic_read_lock);
 
-	printLog(11);
+	print_log(11);
 
 	if (b - buf)
 		retval = b - buf;
