@@ -2176,7 +2176,7 @@ static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 			return -ERESTARTSYS;
 	}
 
-	print_log(2);
+	//print_log(2);
 
 	down_read(&tty->termios_rwsem);
 
@@ -2213,7 +2213,7 @@ static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 				printk("rrdebug : in while loop, nr : %d\n", nr);
 			}
 
-			print_log(4);
+			//print_log(4);
 			if (packet && tty->link->ctrl_status) {
 				unsigned char cs;
 				if (b != buf)
@@ -2231,19 +2231,19 @@ static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 				break;
 			}
 
-			print_log(5);
+			//print_log(5);
 
 			if (!input_available_p(tty, 0)) {
 
 				if(((current->flags) & 0x00000001) == 0x00000001) {
 					printk("rrdebug : not input_available_p\n");
 				}
-				print_log(6);
+				//print_log(6);
 				up_read(&tty->termios_rwsem);
 				tty_buffer_flush_work(tty->port);
 				down_read(&tty->termios_rwsem);
 
-				print_log(7);
+				//print_log(7);
 				if (!input_available_p(tty, 0)) {
 					if (test_bit(TTY_OTHER_CLOSED, &tty->flags)) {
 						retval = -EIO;
@@ -2281,13 +2281,13 @@ static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 				}
 			}
 
-			print_log(8);
+			//print_log(8);
 			if ((((current->flags) & 0x00000002) == 0x00000002) ||ldata->icanon && !L_EXTPROC(tty)) {
 
 				if(((current->flags) & 0x00000001) == 0x00000001) {
 					printk("rrdebug : before canon_copy_from_read_buf\n");
 				}
-				print_log(9);
+				//print_log(9);
 				retval = canon_copy_from_read_buf(tty, &b, &nr);
 				if (retval)
 					break;
@@ -2325,7 +2325,7 @@ static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 		}
 	//}
 
-	print_log(10);
+	//print_log(10);
 	if(((current->flags) & 0x00000001) == 0x00000001) {
 		printk("rrdebug : before [n_tty_kick_worker(tty) && up_read\n");
 	}
@@ -2336,7 +2336,7 @@ static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 	remove_wait_queue(&tty->read_wait, &wait);
 	mutex_unlock(&ldata->atomic_read_lock);
 
-	print_log(11);
+	//print_log(11);
 
 	if (b - buf)
 		retval = b - buf;
