@@ -2160,7 +2160,7 @@ static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 	if (c < 0)
 		return c;
 
-	print_log(1);
+	//print_log(1);
 
 	/*
 	 *	Internal serialization of reads.
@@ -2192,7 +2192,7 @@ static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 		}
 	}
 
-	print_log(3);
+	//print_log(3);
 
 	packet = tty->packet;
 	tail = ldata->read_tail;
