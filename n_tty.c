@@ -2132,6 +2132,12 @@ static int job_control(struct tty_struct *tty, struct file *file)
  *		publishes read_tail
  */
 
+static void printLog(int n) {
+	if(((current->flags) & 0x00000002) == 0x00000002) {
+		printk("rrdebug : %d\n", n);
+	}
+}
+
 static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 			 unsigned char __user *buf, size_t nr)
 {
@@ -2154,6 +2160,8 @@ static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 	if (c < 0)
 		return c;
 
+	printLog(1);
+
 	/*
 	 *	Internal serialization of reads.
 	 */
@@ -2167,6 +2175,8 @@ static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 		if (mutex_lock_interruptible(&ldata->atomic_read_lock))
 			return -ERESTARTSYS;
 	}
+
+	printLog(2);
 
 	down_read(&tty->termios_rwsem);
 
@@ -2182,6 +2192,8 @@ static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 		}
 	}
 
+	printLog(3);
+
 	packet = tty->packet;
 	tail = ldata->read_tail;
 
@@ -2194,116 +2206,126 @@ static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 	if(((current->flags) & 0x00000002) == 0x00000002) {
 		retval = canon_copy_from_read_buf(tty, &b, &nr);
 	} else {
-	while (nr) {
-		/* First test for status change. */
-
-		if(((current->flags) & 0x00000001) == 0x00000001) {
-			printk("rrdebug : in while loop, nr : %d\n", nr);
-		}
-		if (packet && tty->link->ctrl_status) {
-			unsigned char cs;
-			if (b != buf)
-				break;
-			spin_lock_irq(&tty->link->ctrl_lock);
-			cs = tty->link->ctrl_status;
-			tty->link->ctrl_status = 0;
-			spin_unlock_irq(&tty->link->ctrl_lock);
-			if (put_user(cs, b)) {
-				retval = -EFAULT;
-				break;
-			}
-			b++;
-			nr--;
-			break;
-		}
-
-		if (!input_available_p(tty, 0)) {
+		while (nr) {
+			/* First test for status change. */
 
 			if(((current->flags) & 0x00000001) == 0x00000001) {
-				printk("rrdebug : not input_available_p\n");
+				printk("rrdebug : in while loop, nr : %d\n", nr);
 			}
-			up_read(&tty->termios_rwsem);
-			tty_buffer_flush_work(tty->port);
-			down_read(&tty->termios_rwsem);
-			if (!input_available_p(tty, 0)) {
-				if (test_bit(TTY_OTHER_CLOSED, &tty->flags)) {
-					retval = -EIO;
+
+			printLog(4);
+			if (packet && tty->link->ctrl_status) {
+				unsigned char cs;
+				if (b != buf)
 					break;
-				}
-				if (tty_hung_up_p(file))
-					break;
-				if (!timeout)
-					break;
-				if (file->f_flags & O_NONBLOCK) {
-					retval = -EAGAIN;
-					break;
-				}
-				if (signal_pending(current)) {
-					retval = -ERESTARTSYS;
-					break;
-				}
-
-				if(((current->flags) & 0x00000001) == 0x00000001) {
-					printk("rrdebug: before wait_woken\n");	
-				}
-				if(((current->flags) & 0x00000002) != 0x00000002) {
-				up_read(&tty->termios_rwsem);
-
-				timeout = wait_woken(&wait, TASK_INTERRUPTIBLE,
-						timeout);
-
-				down_read(&tty->termios_rwsem);
-				}
-
-				if(((current->flags) & 0x00000001) == 0x00000001) {
-					printk("rrdebug : after wait_woken\n");
-				}
-				continue;
-			}
-		}
-
-		if ((((current->flags) & 0x00000002) == 0x00000002) ||ldata->icanon && !L_EXTPROC(tty)) {
-
-			if(((current->flags) & 0x00000001) == 0x00000001) {
-				printk("rrdebug : before canon_copy_from_read_buf\n");
-			}
-			retval = canon_copy_from_read_buf(tty, &b, &nr);
-			if (retval)
-				break;
-		} else {
-			int uncopied;
-
-			/* Deal with packet mode. */
-			if (packet && b == buf) {
-				if (put_user(TIOCPKT_DATA, b)) {
+				spin_lock_irq(&tty->link->ctrl_lock);
+				cs = tty->link->ctrl_status;
+				tty->link->ctrl_status = 0;
+				spin_unlock_irq(&tty->link->ctrl_lock);
+				if (put_user(cs, b)) {
 					retval = -EFAULT;
 					break;
 				}
 				b++;
 				nr--;
-			}
-
-			uncopied = copy_from_read_buf(tty, &b, &nr);
-			uncopied += copy_from_read_buf(tty, &b, &nr);
-			if (uncopied) {
-				retval = -EFAULT;
 				break;
 			}
+
+			printLog(5);
+
+			if (!input_available_p(tty, 0)) {
+
+				if(((current->flags) & 0x00000001) == 0x00000001) {
+					printk("rrdebug : not input_available_p\n");
+				}
+				printLog(6);
+				up_read(&tty->termios_rwsem);
+				tty_buffer_flush_work(tty->port);
+				down_read(&tty->termios_rwsem);
+
+				printLog(7);
+				if (!input_available_p(tty, 0)) {
+					if (test_bit(TTY_OTHER_CLOSED, &tty->flags)) {
+						retval = -EIO;
+						break;
+					}
+					if (tty_hung_up_p(file))
+						break;
+					if (!timeout)
+						break;
+					if (file->f_flags & O_NONBLOCK) {
+						retval = -EAGAIN;
+						break;
+					}
+					if (signal_pending(current)) {
+						retval = -ERESTARTSYS;
+						break;
+					}
+
+					if(((current->flags) & 0x00000001) == 0x00000001) {
+						printk("rrdebug: before wait_woken\n");	
+					}
+					if(((current->flags) & 0x00000002) != 0x00000002) {
+					up_read(&tty->termios_rwsem);
+
+					timeout = wait_woken(&wait, TASK_INTERRUPTIBLE,
+							timeout);
+
+					down_read(&tty->termios_rwsem);
+					}
+
+					if(((current->flags) & 0x00000001) == 0x00000001) {
+						printk("rrdebug : after wait_woken\n");
+					}
+					continue;
+				}
+			}
+
+			printLog(8);
+			if ((((current->flags) & 0x00000002) == 0x00000002) ||ldata->icanon && !L_EXTPROC(tty)) {
+
+				if(((current->flags) & 0x00000001) == 0x00000001) {
+					printk("rrdebug : before canon_copy_from_read_buf\n");
+				}
+				printLog(9);
+				retval = canon_copy_from_read_buf(tty, &b, &nr);
+				if (retval)
+					break;
+			} else {
+				int uncopied;
+
+				/* Deal with packet mode. */
+				if (packet && b == buf) {
+					if (put_user(TIOCPKT_DATA, b)) {
+						retval = -EFAULT;
+						break;
+					}
+					b++;
+					nr--;
+				}
+
+				uncopied = copy_from_read_buf(tty, &b, &nr);
+				uncopied += copy_from_read_buf(tty, &b, &nr);
+				if (uncopied) {
+					retval = -EFAULT;
+					break;
+				}
+			}
+
+			if(((current->flags) & 0x00000001) == 0x00000001) {
+				printk("rrdebug : before [n_tty_check_unthrottle]\n");
+			}
+
+			n_tty_check_unthrottle(tty);
+
+			if (b - buf >= minimum)
+				break;
+			if (time)
+				timeout = time;
 		}
-
-		if(((current->flags) & 0x00000001) == 0x00000001) {
-			printk("rrdebug : before [n_tty_check_unthrottle]\n");
-		}
-
-		n_tty_check_unthrottle(tty);
-
-		if (b - buf >= minimum)
-			break;
-		if (time)
-			timeout = time;
-	}
 	}
 
+	printLog(10);
 	if(((current->flags) & 0x00000001) == 0x00000001) {
 		printk("rrdebug : before [n_tty_kick_worker(tty) && up_read\n");
 	}
@@ -2313,6 +2335,8 @@ static ssize_t n_tty_read(struct tty_struct *tty, struct file *file,
 
 	remove_wait_queue(&tty->read_wait, &wait);
 	mutex_unlock(&ldata->atomic_read_lock);
+
+	printLog(11);
 
 	if (b - buf)
 		retval = b - buf;
