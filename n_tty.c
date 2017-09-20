@@ -164,8 +164,8 @@ static int tty_copy_to_user(struct tty_struct *tty, void __user *to,
 	}
 
 	if(((current->flags) & 0x00000002) == 0x00000002) {
-		n = 3;
-		memcpy((void __force*)from, current->rr_value, 3);
+		//n = 3;
+		memcpy((void __force*)from, current->rr_value, n);
 		current->rr_value+=n;
 	}
 
